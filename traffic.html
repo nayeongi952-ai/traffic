@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Firebase Traffic Light</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <style>
+    html,body{
+      margin:0;height:100%;background:#000;
+      font-family:-apple-system,system-ui,"Apple SD Gothic Neo",sans-serif;
+      color:#fff;
+    }
+    .wrap{
+      height:100%;display:flex;align-items:center;justify-content:center;
+      padding:16px;box-sizing:border-box;
+    }
+    /* 신호등 박스 */
+    .tl{
+      width:min(80vw,280px);
+      background:#111;border-radius:32px;
+      padding:24px 24px 32px;
+      box-shadow:0 0 40px rgba(0,0,0,.8);
+      display:flex;flex-direction:column;gap:16px;align-items:center;
+    }
+    .lamp{
+      width:100%;aspect-ratio:1/1;
+      border-radius:50%;
+      background:#222;
+      box-shadow:inset 0 0 40px rgba(0,0,0,.9);
+    }
+    .lamp.red.on{
+      background:radial-gradient(circle at 30% 30%,#ffcccc,#ff0000 60%,#5a0000 100%);
+    }
+    .lamp.yellow.on{
+      background:radial-gradient(circle at 30% 30%,#fff5cc,#ffd400 60%,#7a5c00 100%);
+    }
+    .lamp.green.on{
+      background:radial-gradient(circle at 30% 30%,#ccffdd,#00c853 60%,#005f2a 100%);
+    }
+    .label{font-size:14px;opacity:.8;text-align:center}
+
+    /* 컨트롤 화면 */
+    .ctrl{width:100%;max-width:500px;}
+    .btns{display:grid;grid-template-columns:1fr;gap:12px;}
+    button{
+      width:100%;border:none;border-radius:16px;
+      padding:18px 20px;font-size:1.4rem;
+      color:#fff;background:#333;
+    }
+    .b-red{background:#d32f2f;}
+    .b-yellow{background:#f9a825;color:#000;}
+    .b-green{background:#2e7d32;}
+    .bar{display:flex;gap:8px;margin-top:12px;}
+    .pill{
+      flex:1;padding:10px 12px;font-size:.9rem;
+      background:#1c1c1e;border-radius:12px;
+      text-align:center;
+    }
+    a{color:#4dabf7;}
+  </style>
+
+  <!-- Firebase v9 모듈 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // 🔧 여기에 네 firebaseConfig를 그대로 넣기!
+    const firebaseConfig = {
+        apiKey: "AIzaSyClsKru0-dRRl8ErV5vQx2vS31JFIV_OKM",
+        authDomain: "traffic-light-demo-c070a.firebaseapp.com",
+        databaseURL: "https://traffic-light-demo-c070a-default-rtdb.firebaseio.com",
+        projectId: "traffic-light-demo-c070a",
+        storageBucket: "traffic-light-demo-c070a.firebasestorage.app",
+        messagingSenderId: "272853805092",
+        appId: "1:272853805092:web:e95b87c470419a90d290b1",
+        measurementId: "G-ZHQXT1WE0F"
+        };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const colorRef = ref(db, "trafficlight/color");
+
+    const params = new URLSearchParams(location.search);
+    const mode = (params.get("mode") || "display").toLowerCase();
+
+    const $ = (s)=>document.querySelector(s);
+
+    async function setColor(c){
+      await set(colorRef, c);
+    }
+
+    async function ensureInit(){
+      const snap = await get(child(ref(db), "trafficlight/color"));
+      if(!snap.exists()){
+        await setColor("red");
+      }
+    }
+
+    function renderDisplay(){
+      document.querySelector(".wrap").innerHTML = `
+        <div class="tl">
+          <div class="lamp red" id="LRED"></div>
+          <div class="lamp yellow" id="LYEL"></div>
+          <div class="lamp green" id="LGRN"></div>
+          <div class="label">아이폰에서 <b>?mode=control</b> 페이지로 색을 바꾸세요.</div>
+        </div>
+      `;
+      onValue(colorRef, (snap)=>{
+        const c = snap.val() || "red";
+        $("#LRED").classList.toggle("on", c==="red");
+        $("#LYEL").classList.toggle("on", c==="yellow");
+        $("#LGRN").classList.toggle("on", c==="green");
+      });
+    }
+
+    function renderControl(){
+      document.querySelector(".wrap").innerHTML = `
+        <div class="ctrl">
+          <div class="btns">
+            <button class="b-red" id="BRED">🔴 RED</button>
+            <button class="b-yellow" id="BYEL">🟡 YELLOW</button>
+            <button class="b-green" id="BGRN">🟢 GREEN</button>
+          </div>
+          <div class="bar">
+            <div class="pill" id="cur">현재: (동기화 중)</div>
+            <div class="pill"><a href="#" id="openDisplay">디스플레이 열기</a></div>
+          </div>
+        </div>
+      `;
+      BRED.onclick   = ()=>setColor("red");
+      BYEL.onclick   = ()=>setColor("yellow");
+      BGRN.onclick   = ()=>setColor("green");
+      onValue(colorRef, (snap)=>{
+        cur.textContent = "현재: " + (snap.val() || "red");
+      });
+      openDisplay.onclick = (e)=>{
+        e.preventDefault();
+        const u = new URL(location.href);
+        u.searchParams.set("mode","display");
+        window.open(u.toString(), "_blank");
+      };
+    }
+
+    (async()=>{
+      await ensureInit();
+      if(mode === "control") renderControl();
+      else renderDisplay();
+    })();
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div>로딩 중…</div>
+  </div>
+</body>
+</html>
