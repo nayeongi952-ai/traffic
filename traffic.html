@@ -2,90 +2,97 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Realistic 2-Color Traffic Light</title>
+<title>Traffic Light</title>
+
 <style>
   body {
-    background: linear-gradient(#5db2ff, #bfe3ff); /* 하늘 배경 */
+    margin: 0;
     height: 100vh;
+    background: linear-gradient(#8fd4ff, #bfe7ff);
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0;
   }
 
-  .traffic-container {
+  /* 전체 컨테이너 */
+  .traffic-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
   }
 
-  /* ===== 신호등 본체 ===== */
+  /* 신호등 본체 */
   .traffic-body {
-    width: 160px;
+    width: 200px;
     background: #1b1b1b;
-    border-radius: 20px;
-    padding: 20px 0;
-    box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    padding: 25px 0;
+    border-radius: 25px;
+    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 35px;
   }
 
-  /* ===== 각 등 박스 ===== */
+  /* 개별 램프 박스 */
   .lamp-box {
-    width: 120px;
-    height: 120px;
+    width: 160px;
+    height: 160px;
     background: #111;
-    border-radius: 50%;
+    border-radius: 35px;
     margin: auto;
     position: relative;
-    box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
-  }
-
-  /* 등 내부(렌즈) 스타일 */
-  .lamp {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: #333;
+    box-shadow: inset 0 0 25px rgba(0,0,0,0.7);
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+
+  /* 동그라미 램프 — 키움 */
+  .lamp {
+    width: 120px;   /* 기존보다 10~15px 더 확장 */
+    height: 120px;
+    border-radius: 50%;
+    background: #333;
     transition: 0.2s;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.2), rgba(0,0,0,0.9)),
-                      repeating-radial-gradient(circle, transparent, transparent 4px, rgba(0,0,0,0.4) 5px);
+    box-shadow: inset 0 0 35px rgba(0,0,0,0.8);
   }
 
-  .red.on { background-color: red; box-shadow: 0 0 25px 10px rgba(255,0,0,0.9); }
-  .green.on { background-color: #00e000; box-shadow: 0 0 25px 10px rgba(0,255,0,0.9); }
-
-  /* ===== 신호등 후드(그늘막) ===== */
-  .hood {
-    width: 140px;
-    height: 70px;
-    background: #0d0d0d;
-    border-radius: 70px 70px 10px 10px;
-    position: absolute;
-    top: -20px;
-    left: -10px;
-    z-index: -1;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+  /* 불 켜진 상태 */
+  .red.on {
+    background: radial-gradient(circle, #ffcccc, #ff0000 60%, #7a0000 100%);
+    box-shadow: 0 0 25px 10px rgba(255,0,0,0.6);
   }
 
-  /* ===== 기둥 ===== */
+  .green.on {
+    background: radial-gradient(circle, #ccffcc, #00e000 60%, #007a00 100%);
+    box-shadow: 0 0 25px 10px rgba(0,255,0,0.6);
+  }
+
+  /* 새로 붙인 기둥 */
   .pole {
-    width: 35px;
+    width: 40px;
     height: 260px;
-    background: #2a2a2a;
-    border-radius: 15px;
-    margin-top: -5px;  /* 본체와 딱 붙게 */
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+    background: #2e2e2e;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
+    margin-top: -5px;  /* 신호등 본체와 완전 밀착 */
+    border-radius: 12px;
+  }
+
+  /* 바닥 받침 */
+  .base {
+    width: 110px;
+    height: 30px;
+    background: #2d2d2d;
+    margin-top: 8px;
+    border-radius: 20px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
   }
 </style>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyClsKru0-dRRl8ErV5vQx2vS31JFIV_OKM",
@@ -121,26 +128,26 @@ window.onload = () => {
   if (mode === "control") controlMode();
 };
 </script>
+
 </head>
 <body>
 
-<!-- ================= 표시 화면 ================= -->
-<div class="traffic-container" id="display" style="display:none;">
+<!-- 표시 화면 -->
+<div class="traffic-wrap" id="display" style="display:none;">
   <div class="traffic-body">
     <div class="lamp-box">
-      <div class="hood"></div>
       <div class="lamp red" id="red"></div>
     </div>
     <div class="lamp-box">
-      <div class="hood"></div>
       <div class="lamp green" id="green"></div>
     </div>
   </div>
 
   <div class="pole"></div>
+  <div class="base"></div>
 </div>
 
-<!-- ================= 제어 화면 ================= -->
+<!-- 제어 화면 -->
 <div id="control" style="display:none; text-align:center;">
   <button id="btnRed" style="font-size:30px;padding:20px;margin:20px;background:#ff4d4d;color:white;border:none;border-radius:10px;">🔴 빨간불</button>
   <button id="btnGreen" style="font-size:30px;padding:20px;margin:20px;background:#00cc44;color:white;border:none;border-radius:10px;">🟢 초록불</button>
